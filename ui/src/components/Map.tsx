@@ -57,7 +57,7 @@ export function MapView({ filteredIdentifiers, onNewGeoData, focusPoint }: MapVi
     pointsSourceRef.current = pointsSource;
     linesSourceRef.current = linesSource;
 
-    // Lines layer (below points)
+    // Lines layer (below points) - solid colored route lines
     const linesLayer = new VectorLayer({
       source: linesSource,
       style: (feature) => {
@@ -66,35 +66,38 @@ export function MapView({ filteredIdentifiers, onNewGeoData, focusPoint }: MapVi
         return new Style({
           stroke: new Stroke({
             color: color,
-            width: 3,
-            lineDash: [4, 8],
+            width: 4,
           }),
         });
       },
     });
 
-    // Points layer (above lines)
+    // Points layer (above lines) - all historical points visible
     const pointsLayer = new VectorLayer({
       source: pointsSource,
       style: (feature) => {
         const identifier = feature.get('identifier') as string;
         const name = feature.get('name') as string;
         const isLatest = feature.get('isLatest') as boolean;
+        const pointIndex = feature.get('pointIndex') as number;
         const color = VEHICLE_COLORS[identifier] || '#666666';
         
         return new Style({
           image: new CircleStyle({
-            radius: isLatest ? 12 : 6,
-            fill: new Fill({ color: isLatest ? color : color + '80' }),
-            stroke: new Stroke({ color: '#ffffff', width: isLatest ? 3 : 1 }),
+            radius: isLatest ? 14 : 8,
+            fill: new Fill({ color: isLatest ? color : color + 'CC' }),
+            stroke: new Stroke({ 
+              color: '#ffffff', 
+              width: isLatest ? 3 : 2 
+            }),
           }),
-          text: isLatest ? new Text({
-            text: name,
-            offsetY: -22,
-            font: 'bold 12px Arial, sans-serif',
-            fill: new Fill({ color: '#1a1a1a' }),
-            stroke: new Stroke({ color: '#ffffff', width: 3 }),
-          }) : undefined,
+          text: new Text({
+            text: isLatest ? name : String(pointIndex),
+            offsetY: isLatest ? -24 : 0,
+            font: isLatest ? 'bold 12px Arial, sans-serif' : '10px Arial, sans-serif',
+            fill: new Fill({ color: isLatest ? '#1a1a1a' : '#ffffff' }),
+            stroke: new Stroke({ color: isLatest ? '#ffffff' : color, width: isLatest ? 3 : 0 }),
+          }),
         });
       },
     });
@@ -176,7 +179,8 @@ export function MapView({ filteredIdentifiers, onNewGeoData, focusPoint }: MapVi
       }
     });
 
-    // Create new point feature
+    // Create new point feature with index number
+    const pointIndex = identifierData.length;
     const pointFeature = new Feature({
       geometry: new Point(fromLonLat([geoData.lon, geoData.lat])),
       name: geoData.name,
@@ -185,6 +189,7 @@ export function MapView({ filteredIdentifiers, onNewGeoData, focusPoint }: MapVi
       lon: geoData.lon,
       timestamp: geoData.timestamp,
       isLatest: true,
+      pointIndex: pointIndex,
     });
     pointFeature.setId(geoData.id);
     pointsSourceRef.current.addFeature(pointFeature);
